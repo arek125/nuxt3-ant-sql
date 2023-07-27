@@ -21,8 +21,7 @@ export default defineNuxtConfig({
   runtimeConfig:{
     HOST: isDev?'http://localhost:3000':'http://nuxt.mdi9.tk',
     JWT_SECRET:"R^dRxVd7tpX4wFMtMTwk746VemAt*vMKheAsJC@4w4uvtfyGy^Z$uG%7S6eKMNY",
-    //DB_URI:"postgres://postgres:qwerty12@localhost:5432/test",
-    DB_URI: "mssql://ps_nuxt_login:P@ssw0rd@PSSQL2019DEV:1433/NuxTest",
+    DB_URI: "mssql://#######",
     MAIL_BOX:{
       host: 'smtp.office365.com',
       port : 587,
