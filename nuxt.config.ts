@@ -26,8 +26,8 @@ export default defineNuxtConfig({
     MAIL_BOX:{
       host: 'smtp.office365.com',
       port : 587,
-      user: 'easyredmine@petrosoft.pl',
-      pass: '3asyR3dmine!'
+      user: '########',
+      pass: '######!'
     },
     DOCS_FILES_DIR: os.homedir()+slash+'nuxtDocsFiles'+slash,
   },
