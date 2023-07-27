@@ -13,9 +13,9 @@ export default NuxtAuthHandler({
         signIn: '/login'
     },
     providers: [AzureADProvider.default({
-            clientId: 'b3f009c8-fda8-4000-a81c-884aca8bd74a',
-            clientSecret: '75u8Q~ToZIzJK4XZvNU9F3vBOOr~c_cnnWD3WanL',
-            tenantId: 'ebd79d61-2e79-4923-9988-fe706140522f',
+            clientId: '########################',
+            clientSecret: '######################',
+            tenantId: '##########################',
         }),
         // @ts-expect-error You need to use .default here for it to work during SSR. May be fixed via Vite at some point
         CredentialsProvider.default({
