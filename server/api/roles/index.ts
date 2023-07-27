@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
         if (!event.context.auth.roles.includes('Admin')) {
             return sendError(event, createError({statusCode: 403, statusMessage: 'Forbidden'}));
         }
-        let input = await useBody(event);
+        let input = await readBody(event);
         try{
             delete input.id
             let role:any = await Role.create(input)

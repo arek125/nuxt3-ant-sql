@@ -16,14 +16,34 @@ const Task = sequelize.define('task',{
         type: DataTypes.STRING,
         allowNull: false
     },
-    // outcome: {
-    //     type: DataTypes.STRING,
-    //     allowNull: true
-    // },
-    // comment: {
-    //     type: DataTypes.STRING,
-    //     allowNull: true
-    // },
+    index: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
+    type: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    notificationTitle: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    notificationBody: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    percentToComplete: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    assignType: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    assignBeforeIndex: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
 })
 
 export default Task;

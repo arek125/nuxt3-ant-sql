@@ -9,6 +9,7 @@ import user from '../../models/user';
 
 //import sequelize from '~~/server/db';
 import { Op } from "sequelize";
+import * as qs from 'qs'
 
 export default defineEventHandler(async (event) => {
     if (!event.context.auth) {
@@ -19,37 +20,45 @@ export default defineEventHandler(async (event) => {
     /* /api/users */
     
     if (isMethod(event, 'GET')) {
-        const query = useQuery(event)
+        const query:any = getQuery(event)
         let pageSize = query.pageSize?parseInt(query.pageSize.toString()):10
         let page = query.page?parseInt(query.page.toString()):0
         let orderCol = query.sortField?query.sortField.toString():'title';
         let orderDir = query.sortOrder=='ascend'?'ASC':'DESC';
-        let whereObj = {}
-        for (const key in query){
-            if(key.startsWith('filter_')){
-                let whereKey = key.split('_')[1]
-                if(whereKey.includes('.'))whereKey = '$'+whereKey+'$'
-                whereObj[whereKey] = {[Op.iLike]: '%' + query[key] + '%'}
-            }
-            else if(key.startsWith('filterExt_')){
-                whereObj['$'+ key.split('_')[1]+'$'] = {[Op.iLike]: '%' + query[key] + '%'}
-            }
-        }
+        let whereObj = query.filters?qs.parse(query.filters, { delimiter: ';' }):{};
+        console.log(whereObj)
+        // for (const key in query){
+        //     if(key.startsWith('filter_')){
+        //         let whereKey = key.split('_')[1]
+        //         if(whereKey.includes('.'))whereKey = '$'+whereKey+'$'
+        //         whereObj[whereKey] = {[Op.iLike]: '%' + query[key] + '%'}
+        //     }
+        //     else if(key.startsWith('filterExt_')){
+        //         whereObj['$'+ key.split('_')[1]+'$'] = {[Op.iLike]: '%' + query[key] + '%'}
+        //     }
+        // }
         try{
-            if(query.count)return await Task.count({where: whereObj,include:[{model: flowInctance, required: true,include:[{model: doc, required: true},flow]},{model: outcome, required: true},{
+            if(query.count)return await Task.count({where: whereObj,
+                include:[{model: flowInctance, required: true,include:[{model: doc, required: true},flow]},{model: outcome, required: false},{
                 model: user,
                 attributes: { exclude: ['password'] },
                 required: true,
-                duplicating: false
-            }]})
-            return await Task.findAll({limit: pageSize,offset: pageSize * page,order:[[orderCol,orderDir]],where: whereObj, include:[{model: flowInctance,required: true,include:[{model: doc, required: true},flow]},{model: outcome, required: true},{
+                duplicating: false,
+                subQuery: false
+            },
+        ]})
+            let tasks = await Task.findAll({limit: pageSize,offset: pageSize * page,order:[[orderCol,orderDir]],where: whereObj, 
+                include:[{model: flowInctance,required: true,include:[{model: doc, required: true},flow]},{model: outcome, required: false},{
                 model: user,
                 attributes: { exclude: ['password'] },
                 required: true,
-                duplicating: false
+                duplicating: false,
+                subQuery: false
             }]})
+            //console.log(tasks)
+            return tasks
         }
-        catch(err){
+        catch(err:any){
             console.log(err)
             return sendError(event, createError({statusCode: 400, statusMessage: err}));
         }

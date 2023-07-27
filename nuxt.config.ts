@@ -2,11 +2,39 @@ import Components from 'unplugin-vue-components/vite';
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers';
 import Icons from 'unplugin-icons/vite'
 import IconsResolver from 'unplugin-icons/resolver'
+import os from 'os'
 
+const isDev = process.env.NODE_ENV === 'development'
+const slash = os.type() == 'Windows_NT'?'\\':'/'
+console.log(process.env.ENV)
 export default defineNuxtConfig({
-  //modules: ['./modules/antdv'],
-  //css: ['ant-design-vue/dist/antd.css'],
+  modules: ['@sidebase/nuxt-auth','@pinia/nuxt'],
+  auth: {
+    isEnabled: true,
+    enableGlobalAppMiddleware: false,
+  },
+  pinia: {
+    autoImports: [
+      'defineStore', // import { defineStore } from 'pinia'
+    ]
+  },
+  runtimeConfig:{
+    HOST: isDev?'http://localhost:3000':'http://nuxt.mdi9.tk',
+    JWT_SECRET:"R^dRxVd7tpX4wFMtMTwk746VemAt*vMKheAsJC@4w4uvtfyGy^Z$uG%7S6eKMNY",
+    //DB_URI:"postgres://postgres:qwerty12@localhost:5432/test",
+    DB_URI: "mssql://ps_nuxt_login:P@ssw0rd@PSSQL2019DEV:1433/NuxTest",
+    MAIL_BOX:{
+      host: 'smtp.office365.com',
+      port : 587,
+      user: 'easyredmine@petrosoft.pl',
+      pass: '3asyR3dmine!'
+    },
+    DOCS_FILES_DIR: os.homedir()+slash+'nuxtDocsFiles'+slash,
+  },
   vite: {
+    define: {
+      "process.env.TESS_ENV": process.env.ENV,
+    },
     plugins: [
       Components({
         // add option {resolveIcons: true} as parameter for resolving problem with icons
@@ -35,8 +63,10 @@ export default defineNuxtConfig({
   },
   nitro: {
     plugins: [
-        "~/server/dbInit.ts"
+        "~/server/dbInit.ts",
+        //"~/server/dbCreation.ts"
     ],
+    preset: 'node-server'
 		// externals: {
 		// 	inline: ["lodash-es", "dayjs"],
 		// },
@@ -45,9 +75,12 @@ export default defineNuxtConfig({
   // alias: {
   //   'dayjs': 'dayjs/esm/'
   // },
-	// build: {
-	// 	transpile: ["lodash-es","@babel/runtime","argon2"],
-	// },
+	build: {
+		transpile: isDev?[]:[
+      "lodash-es",
+      "@babel/runtime"
+    ],
+	},
   // vue: {
   //   config: {
   //     css: {

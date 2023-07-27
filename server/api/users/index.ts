@@ -3,8 +3,10 @@ import { sendError } from 'h3'
 //import { createError } from '~/server/error-helpers'
 import User from '../../models/user';
 import Role from '../../models/role';
-import argon2 from 'argon2'
+//import argon2 from 'argon2'
 import { Op } from "sequelize";
+import bcrypt from "bcrypt"
+const saltRounds = 10;
 
 // export default async function (req: IncomingMessage, res: ServerResponse)
 // {
@@ -46,7 +48,7 @@ export default defineEventHandler(async (event) => {
         // const query = useQuery(event)
         // let pageSize = parseInt(query.pageSize.toString())
 
-        const query = useQuery(event)
+        const query = getQuery(event)
 
         let pageSize = query.pageSize?parseInt(query.pageSize.toString()):10
         let page = query.page?parseInt(query.page.toString()):0
@@ -62,11 +64,12 @@ export default defineEventHandler(async (event) => {
         if (!adminMode) {
             return sendError(event, createError({statusCode: 403, statusMessage: 'Forbidden'}));
         }
-        let input = await useBody(event);
+        let input = await readBody(event);
         try{
             delete input.id
             delete input.currentPassoword
-            input.password = await argon2.hash(input.newPassword)
+            //input.password = await argon2.hash(input.newPassword)
+            input.password = await bcrypt.hash(input.newPassword, saltRounds)
             delete input.newPassword
             //delete input.role
             const selectedRoles = await Role.findAll({where: {id:{[Op.in]: input.roles}}})

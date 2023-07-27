@@ -5,7 +5,7 @@ import Outcome from '~~/server/models/outcome';
 import TaskAction from '~~/server/models/taskAction';
 import User from '~~/server/models/user';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event:any) => {
     if (!event.context.auth) {
         return sendError(event, createError({statusCode: 401, statusMessage: 'Unauthenticated'}));
     }

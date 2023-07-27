@@ -10,6 +10,10 @@ import Document from './models/document';
 import Task from './models/task';
 import Outcome from './models/outcome';
 import TaskAction from './models/taskAction';
+import DocumentFile from './models/documentFile';
+import Absence from './models/absence';
+import OcrSchema from './models/ocrSchema'
+import OcrArea from './models/ocrArea'
 
 export default async (_nitroApp: Nitro) => {
     try {
@@ -17,32 +21,11 @@ export default async (_nitroApp: Nitro) => {
         
         console.log('DB Connection has been established successfully.');
 
-        await User.sync()
-        await Role.sync()
-
-        await Role.findOrCreate({ where: { name: 'Admin' } })
-        await Role.findOrCreate({ where: { name: 'User' } })
-
-        await Flow.sync()
-        await Stage.sync()
-        await FlowInctance.sync()
-
-        await Document.sync()
-        await Task.sync()
-        await Outcome.sync()
-        await TaskAction.sync()
-
-        await Outcome.findOrCreate({ where: { name: 'Approve' } })
-        await Outcome.findOrCreate({ where: { name: 'Reject' } })
-
         User.belongsToMany(Role, { through: 'UserRoles' });
         Role.belongsToMany(User, { through: 'UserRoles' });
 
         Flow.hasMany(Stage)
         Stage.belongsTo(Flow)
-
-        // Flow.hasMany(Document)
-        // Document.belongsTo(Flow)
 
         Flow.hasMany(FlowInctance)
         FlowInctance.belongsTo(Flow)
@@ -56,8 +39,8 @@ export default async (_nitroApp: Nitro) => {
         Document.hasMany(FlowInctance)
         FlowInctance.belongsTo(Document)
 
-        // Document.hasMany(Task)
-        // Task.belongsTo(Document)
+        Document.hasMany(DocumentFile)
+        DocumentFile.belongsTo(Document)
 
         User.hasMany(Document)
         Document.belongsTo(User)
@@ -80,6 +63,30 @@ export default async (_nitroApp: Nitro) => {
         Outcome.hasMany(TaskAction)
         TaskAction.belongsTo(Outcome)
 
+        User.hasMany(Absence, {foreignKey: 'userId', as: 'user'});
+        Absence.belongsTo(User,{foreignKey: 'userId', as: 'user'});
+        User.hasMany(Absence, {foreignKey: 'deputyId', as: 'deputy'});
+        Absence.belongsTo(User,{foreignKey: 'deputyId', as: 'deputy'});
+
+        OcrSchema.hasMany(OcrArea)
+        OcrArea.belongsTo(OcrSchema)
+
+        // await Role.sync()
+        // await User.sync()
+
+        // await Flow.sync()
+        // await Stage.sync()
+        // await Document.sync()
+        // await Outcome.sync()
+        // await TaskAction.sync()
+        // await Task.sync()
+
+        // await FlowInctance.sync()
+        // await DocumentFile.sync()
+        // await Absence.sync()
+
+        // await OcrSchema.sync()
+        // await OcrArea.sync()
         // await User.sync({ alter: true })
         // await Role.sync({ alter: true })
 
@@ -95,9 +102,23 @@ export default async (_nitroApp: Nitro) => {
         // await Outcome.sync({ alter: true })
         // await TaskAction.sync({ alter: true })
 
-        await sequelize.sync({ alter: true })
+        await sequelize.sync({ force: true })
+
+        const [adminRole] = await Role.findOrCreate({ where: { name: 'Admin' } })
+        await Role.findOrCreate({ where: { name: 'User' } })
+
+        const [supUser]:any = await User.findOrCreate({ where: {     
+            name: 'Arek Goleń',
+            email: 'arkadiusz.golen@petrosoft.pl',
+            password: '$2a$10$XAuKotPfzoBxs9oQRzdP1O8.q7PSy9UOQ4Rwb0AZ3t02S5YvJrzoG',
+            active: true,
+        }
+        })
+        //const supUser:any = await User.findOne({where: { email: 'arkadiusz.golen@petrosoft.pl'}})
+        supUser.setRoles([adminRole])
 
         console.log('DB has been Sync.');
+
     } catch (error) {
         console.error('DB ERROR', error);
     }

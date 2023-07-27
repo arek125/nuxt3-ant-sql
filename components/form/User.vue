@@ -1,18 +1,18 @@
 <script lang="ts" setup>
-import type { SelectProps } from 'ant-design-vue';
 import type { FormInstance } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 //import Schema from 'async-validator'
-const authState = useAuthState()
+//const authState = useAuthState()
+const { data: authState}: { data: any } = useSession()
 const alert = useAlert();
 const props = defineProps({
   userData: {
     type: [Object],
-    default: {id: null, name: '',email: '', active: true, roles:[] }
+    default: {id: null, name: '',email: '', active: true, roles:[], type: 'credentials' }
   }
 })
 
-const formRef = ref<FormInstance>();
+const formRef:any = ref<FormInstance>();
 // const newPassword = ref('')
 // const newPasswordCheck = ref('')
 // const currentPassoword = ref('')
@@ -22,7 +22,7 @@ const passwords = reactive({
     check:''
 })
 
-const roles_ = await $fetch('/api/roles', { headers: authState.getAuthHeader() })
+const roles_ = await $fetch('/api/roles')
 
 const user = reactive(props.userData)
 //const router = useRouter()
@@ -30,7 +30,6 @@ function changeProfileData(){
     if(!user.id){//newuser
         $fetch('/api/users', {
             method: 'POST',
-            headers: authState.getAuthHeader(),
             body: { ...user, newPassword: passwords.new },
         })
         .then((response: any) => {
@@ -43,7 +42,6 @@ function changeProfileData(){
     }else{
         $fetch('/api/users/'+user.id, {
             method: 'POST',
-            headers: authState.getAuthHeader(),
             body: { ...user, currentPassoword: passwords.current, newPassword: passwords.new },
         })
         .then((response: any) => {
@@ -98,7 +96,6 @@ function changeProfileData(){
 <template>
 <div>
 <a-card :title="user.id?'User: '+user.id:'New User'">
-    <Alert></Alert>
     <a-form
         ref="formRef"
         :model="user"
@@ -122,15 +119,15 @@ function changeProfileData(){
         label="Email"
         name="email"
         >
-            <a-input v-model:value="user.email" />
+            <a-input v-model:value="user.email" :disabled="user.type != 'credentials'"/>
         </a-form-item>
 
-        <!-- <a-form-item
-        label="Role"
-        name="role"
+        <a-form-item
+        label="Type"
+        name="type"
         >
-            <a-select v-model:value="user.role" :options="roles"></a-select>
-        </a-form-item> -->
+            {{ user.type }}
+        </a-form-item>
 
                 <a-form-item
         label="Roles"
@@ -151,14 +148,14 @@ function changeProfileData(){
             <a-checkbox v-model:checked="user.active" :disabled="!adminMode">Active</a-checkbox>
         </a-form-item>
 
-        <a-form-item v-if="authState.user.id == user.id && passwords.new"
+        <a-form-item v-if="authState.user.id == user.id && passwords.new && user.type == 'credentials'"
         label="Current password"
         name="currentPassword"
         >
             <a-input-password v-model:value="passwords.current" />
         </a-form-item>
 
-        <a-form-item v-if="authState.user.id == user.id || adminMode"
+        <a-form-item v-if="(authState.user.id == user.id || adminMode) && user.type == 'credentials'"
         label="New password"
         name="newPassword"
         has-feedback
@@ -167,7 +164,7 @@ function changeProfileData(){
             <a-input v-model:value="passwords.new" type="password" autocomplete="off" />
         </a-form-item>
 
-        <a-form-item v-if="authState.user.id == user.id || adminMode"
+        <a-form-item v-if="(authState.user.id == user.id || adminMode) && user.type == 'credentials'"
         label="Repeat new password"
         name="newPasswordCheck"
         has-feedback

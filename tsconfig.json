@@ -1,5 +1,9 @@
 {
   // https://v3.nuxtjs.org/concepts/typescript
   "extends": "./.nuxt/tsconfig.json",
-  "allowSyntheticDefaultImports": true,
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "noImplicitAny": false
+  },
+  "allowSyntheticDefaultImports": true
 }

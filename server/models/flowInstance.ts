@@ -16,6 +16,11 @@ const FlowInstance = sequelize.define('flowInstance',{
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    type: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "OneByOne",
+    },
 })
 
 export default FlowInstance;

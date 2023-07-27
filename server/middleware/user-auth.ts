@@ -1,30 +1,50 @@
-// import { IncomingMessage, ServerResponse } from 'http'
-import { sendError } from 'h3'
-import jwt from 'jsonwebtoken'
-import User from '../models/user'
-import Role from '../models/role'
+import { getServerSession } from '#auth'
+export default eventHandler(async (event) => {
+  const session:any = await getServerSession(event)
+  //console.log(session)
+  if(session) {
+    event.context.auth = session.user
+  }
+})
+// import { sendError,getCookie } from 'h3'
+// import jwt from 'jsonwebtoken'
+// import User from '../models/user'
+// import Role from '../models/role'
+// const runtimeConfig = useRuntimeConfig()
 
-// export default async function userAuthMiddleware(req: IncomingMessage, res: ServerResponse)
-// {
-//   const authHeaderMatch = /^Bearer (?<token>.*?)$/.exec(req.headers['authorization']);
-//   const token = authHeaderMatch?.groups.token;
 
+// export default defineEventHandler(async (event) => {
+//   const authHeader = getHeader(event,'authorization')
+//   let token = null
+
+//   if(authHeader){
+//     const authHeaderMatch = /^Bearer (?<token>.*?)$/.exec(authHeader);
+//     token = authHeaderMatch?.groups.token;
+//   }
+//   else {
+//     const cookie = getCookie(event,'authStateStorage')
+//     if(cookie) token = JSON.parse(getCookie(event,'authStateStorage')).jwt
+//   }
+  
 //   if (token) {
 //     try {
-//       const payload = jwt.verify(token, process.env.JWT_SECRET);
+//       const payload = jwt.verify(token, runtimeConfig.JWT_SECRET);
 //       if (payload && typeof payload == 'object') {
-//         //const user = {email: 'arekgolen@gmail.com'}
-//         //const user = await prisma.user.findUnique({ where: { id: payload.userId }}); todo databgease
-//         const user = await User.findOne({email: payload.email});
-
+//         const user:any = await User.findOne({where: {email: payload.email, active: true}, include: {
+//           model: Role,
+//           attributes:{
+//             exclude: ['createdAt', 'updatedAt']
+//           }
+//         }})
 //         if (!user) {
-//           return sendError(res, createError(403));
+//           return sendError(event, createError({statusCode: 403, statusMessage: 'Forbidden'}));
 //         }
 
-//         req.user = {
+//         event.context.auth = {
 //           id: payload.userId,
 //           name: payload.name,
 //           email: payload.email,
+//           roles: user.roles.map(x=>x.name)
 //         };
 //       }
 //     }
@@ -32,54 +52,7 @@ import Role from '../models/role'
 //       if (!(e instanceof jwt.JsonWebTokenError)) {
 //         throw e;
 //       }
-//       return sendError(res, createError(403));
+//       return sendError(event, createError({statusCode: 403, statusMessage: 'Forbidden'}));
 //     }
 //   }
-// }
-
-export default defineEventHandler(async (event) => {
-  const authHeaderMatch = /^Bearer (?<token>.*?)$/.exec(event.req.headers['authorization']);
-  const token = authHeaderMatch?.groups.token;
-
-  if (token) {
-    try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
-      if (payload && typeof payload == 'object') {
-        //const user:any = await User.findOne({where: {email: payload.email, active: true}})
-        const user:any = await User.findOne({where: {email: payload.email, active: true}, include: {
-          model: Role,
-          attributes:{
-            exclude: ['createdAt', 'updatedAt']
-          }
-        }})
-        if (!user) {
-          return sendError(event, createError({statusCode: 403, statusMessage: 'Forbidden'}));
-        }
-
-        event.context.auth = {
-          id: payload.userId,
-          name: payload.name,
-          email: payload.email,
-          //role: user.role,
-          roles: user.roles
-        };
-      }
-    }
-    catch (e) {
-      if (!(e instanceof jwt.JsonWebTokenError)) {
-        throw e;
-      }
-      return sendError(event, createError({statusCode: 403, statusMessage: 'Forbidden'}));
-    }
-  }
-})
-
-// declare module 'http' {
-//   interface IncomingMessage {
-//     user?: {
-//       id: number
-//       name: string
-//       email: string
-//     }
-//   }
-// }
+// })

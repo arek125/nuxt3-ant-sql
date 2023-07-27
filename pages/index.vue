@@ -1,10 +1,10 @@
 <script setup lang="ts">
-const authState = useAuthState();
-const router = useRouter();
+// const authState = useAuthState();
+// const router = useRouter();
 
-if (!authState.value.loggedIn) {
-  router.push('/login');
-}
+// if (!authState.value.loggedIn) {
+//   router.push('/login');
+// }
 </script>
 
 <template>

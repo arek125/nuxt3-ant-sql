@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-const authState = useAuthState()
+//const authState = useAuthState()
+const { data: authState}: { data: any } = useSession()
 const { data: users }: { data: any } = await useAsyncData( 'users',
-  async () => $fetch('/api/users', { headers: authState.getAuthHeader() }),
+  async () => $fetch('/api/users'),
 )
 
         const columns = ref([
@@ -30,6 +31,11 @@ const { data: users }: { data: any } = await useAsyncData( 'users',
             dataIndex: 'active',
             key: 'active',
           },
+          {
+            title: 'Type',
+            dataIndex: 'type',
+            key: 'type',
+          },
         ])
 
 const customRow = (user) => {
@@ -38,7 +44,7 @@ const customRow = (user) => {
  };
 }
 
-const adminMode = ref(authState.value.user.roles.includes('Admin'))
+const adminMode = ref(authState.value?authState.value.user.roles.includes('Admin'):false)
 
 </script>
 

@@ -3,7 +3,8 @@ import type { FormInstance } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 const route = useRoute()
 const alert = useAlert();
-const authState = useAuthState()
+//const authState = useAuthState()
+const { data: authState}: { data: any } = useSession()
 // const props = defineProps({
 //   taskData: {
 //     type: [Object],
@@ -11,8 +12,7 @@ const authState = useAuthState()
 //   }
 // })
 const emit = defineEmits(['completed'])
-
-const task = ref({id: null, title: '', status: 'New', outcomeId: null, comment:null })
+const task:any = ref({id: null, title: '', status: 'New', outcomeId: null, comment:null })
 const taskActions = ref([])
 const taskActionsColumns = [
     {
@@ -44,29 +44,29 @@ const rules: Record<string, Rule[]> = {
 
 const { data: outcomes } = await useAsyncData(
   'outcomes',
-  async () => $fetch('/api/outcomes', { headers: authState.getAuthHeader() }),
+  async () => $fetch('/api/outcomes'),
   {
     transform: (outcomes:any) => (outcomes.map(x =>({label: x.name, value: x.id})))
   }
 );
 
 onMounted(async ()=>{
-  task.value = await $fetch('/api/tasks/'+route.query.taskId, { headers: authState.getAuthHeader() })
-  if(task.value.status != 'New')taskActions.value = await $fetch('/api/tasks/actions/'+route.query.taskId, { headers: authState.getAuthHeader() })
+  task.value = await $fetch('/api/tasks/'+route.query.taskId)
+  if(task.value.status != 'New')taskActions.value = await $fetch('/api/tasks/actions/'+route.query.taskId)
 })
 
 
 function saveTask(){
     $fetch('/api/tasks/'+task.value.id, {
         method: 'POST',
-        headers: authState.getAuthHeader(),
+        //headers: authState.getAuthHeader(),
         body: { ...task.value },
     })
     .then(async (response: any) => {
         alert.set('success','Task updated !')
         task.value = response
         emit('completed')
-        taskActions.value = await $fetch('/api/tasks/actions/'+route.query.taskId, { headers: authState.getAuthHeader() })
+        taskActions.value = await $fetch('/api/tasks/actions/'+route.query.taskId)
     })
     .catch((e) => {
         alert.set('error',e)
@@ -74,6 +74,7 @@ function saveTask(){
     });
 }
 
+const disableForm = computed(() => task.status == 'Completed' || taskActions.value.filter((x:any)=>x.userId == authState.value.user.id).length > 0)
 </script>
 
 
@@ -97,12 +98,12 @@ function saveTask(){
             </a-col>
             <a-col :span="8">
                 <a-form-item label="Outcome" name="outcomeId">
-                    <a-radio-group v-model:value="task.outcomeId" :disabled="task.status == 'Completed'" size="large">
+                    <a-radio-group v-model:value="task.outcomeId" :disabled="disableForm" size="large">
                         <a-radio v-for="outcome in outcomes" :value="outcome.value">{{outcome.label}}</a-radio>
                     </a-radio-group>
                 </a-form-item>
             </a-col>
-            <a-col :span="8" v-if="task.status != 'Completed'">
+            <a-col :span="8" v-if="!disableForm">
                 <a-form-item label="Comment" name="comment">
                     <a-textarea
                     v-model:value="task.comment"
@@ -110,7 +111,7 @@ function saveTask(){
                     />
                 </a-form-item>
             </a-col>
-            <a-col :span="2" class="gutter-row" v-if="task.status != 'Completed'">
+            <a-col :span="2" class="gutter-row" v-if="!disableForm">
                 <a-button type="primary" html-type="submit">Submit</a-button>
             </a-col>
         </a-row>

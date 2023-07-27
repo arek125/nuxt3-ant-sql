@@ -3,7 +3,7 @@ import Flow from '~~/server/models/flow';
 import User from '~~/server/models/user';
 import Stage from '~~/server/models/stage';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event:any) => {
     if (!event.context.auth) {
         return sendError(event, createError({statusCode: 401, statusMessage: 'Unauthenticated'}));
     }
@@ -16,7 +16,8 @@ export default defineEventHandler(async (event) => {
                     attributes: { exclude: ['password'] }
                 },
                 Flow
-            ]
+            ],
+            order: [['index', 'ASC']]
         })
         return stages
     }
@@ -24,12 +25,12 @@ export default defineEventHandler(async (event) => {
         if (!event.context.auth.roles.includes('Admin')) {
             return sendError(event, createError({statusCode: 403, statusMessage: 'Forbidden'}));
         }
-        let input = await useBody(event);
+        let input = await readBody(event);
         try{
             delete input.id
             let stage:any = await Stage.create({...input, flowId: event.context.params.flowId})
             return stage
-        }catch(err){
+        }catch(err:any){
             console.log(err)
             return sendError(event, createError({statusCode: 400, statusMessage: err}));
         }

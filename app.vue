@@ -15,17 +15,26 @@ import { Menu, Layout, LayoutSider, MenuItem, LayoutContent } from 'ant-design-v
 <script lang="ts" setup>
 
 const collapsed = ref<boolean>(false)
-
-const authState = useAuthState();
-const router = useRouter();
+const {
+  status,
+  data,
+  signOut
+} = useSession()
+//const authState = useAuthState();
+//const router = useRouter();
 const route = useRoute()
-const selectedKeys = ref<string[]>([route.name.toString()])
+const selectedKeys = ref<string[]>([route.name?route.name.toString():''])
 const openKeys = ref<string[]>(['main'])
-function logOut()
+//if(status.value=='authenticated')authState.set()
+async function logOut()
 {
-  authState.reset();
-  router.push('/login');
+  await signOut()
+  //authState.reset();
+  navigateTo('/login');
 }
+// watch(route,newVal=>{
+//   selectedKeys.value = [newVal.name]
+// })
 
 
 
@@ -39,8 +48,8 @@ function logOut()
         :style="{padding: '10px'}"
       />
       <a-menu v-model:selectedKeys="selectedKeys" v-model:openKeys="openKeys" mode="inline">
-        <div v-if="authState.loggedIn" key="main">
-          <!-- <template #title>Main</template> -->
+        <!-- <div v-if="authState.loggedIn" key="main"> -->
+        <div v-if="status == 'authenticated'" key="main">
           <a-menu-item key="index" @click="navigateTo('/')">
               <mdi-home class="anticon"/>
               <span>Home</span>
@@ -49,17 +58,25 @@ function logOut()
               <mdi-account-group class="anticon"/>
               <span>Users list</span>
           </a-menu-item>
+          <a-menu-item key="flows" @click="navigateTo('/flows/')">
+              <mdi-sitemap class="anticon"/>
+              <span>Flows</span>
+          </a-menu-item>
+          <a-menu-item key="absences" @click="navigateTo('/absences')">
+              <mdi-calendar-account class="anticon"/>
+              <span>Absences</span>
+          </a-menu-item>
         </div>
-        <a-divider v-if="authState.loggedIn"/>
-        <a-menu-item v-if="!authState.loggedIn" key="login" @click="navigateTo('/login')">
+        <a-divider v-if="status == 'authenticated'"/>
+        <a-menu-item v-if="status == 'unauthenticated'" key="login" @click="navigateTo('/login')">
           <mdi-lock-open class="anticon"/>
           <span>Login</span>
         </a-menu-item>
-        <div v-else key="logged">
-          <!-- <template #title>User</template> -->
-          <a-menu-item :key="'/users/user-'+authState.user.id" @click="navigateTo('/users/user-'+authState.user.id)">
+        <div v-else-if="status == 'authenticated' && data?.user" key="logged">
+          
+          <a-menu-item :key="'/users/user-'+data.user.id" @click="navigateTo('/users/user-'+data.user.id)">
             <mdi-account-outline class="anticon"/>
-            <span>{{authState.user.name}}</span>
+            <span>{{data.user.name}}</span>
           </a-menu-item>
           <a-menu-item key="logout" @click="logOut">
             <mdi-exit-run class="anticon"/>

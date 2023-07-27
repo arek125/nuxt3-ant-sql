@@ -12,6 +12,10 @@ const Document = sequelize.define('document',{
         type: DataTypes.STRING,
         allowNull: false
     },
+    description: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     status: {
         type: DataTypes.STRING,
         allowNull: false

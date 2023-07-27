@@ -1,10 +1,8 @@
 <script lang="ts" setup>
-    const authState = useAuthState();
-    const router = useRouter();
-    //const { setAlert } = useAlert()
-    if (authState.value.loggedIn) {
-    router.push('/');
-    }
+    definePageMeta({ auth: false })
+    //const authState = useAuthState();
+    //const router = useRouter();
+    const alert = useAlert();
     interface FormState {
         email: string;
         password: string;
@@ -13,38 +11,63 @@
       email: '',
       password: '',
     });
-    function attemptLogin()
-    {
-        $fetch('/api/user/login', {
-            method: 'POST',
-            body: { email: formState.email, password: formState.password },
-        })
-        .then(response => {
-            authState.set({
-            loggedIn: true,
-            jwt: (response as { token: string }).token,
-            user: { id: response.id, name: response.name, email: response.email, roles: response.roles },
-            });
-            router.push('/');
-        })
-        .catch((e) => {
-            //setAlert('error','Login failed !')
-            formState.password = ''
-            console.error(e);
-        });
+    // function attemptLogin()
+    // {
+    //     $fetch('/api/user/login', {
+    //         method: 'POST',
+    //         body: { email: formState.email, password: formState.password },
+    //     })
+    //     .then(response => {
+    //         authState.set({
+    //             loggedIn: true,
+    //             jwt: (response as { token: string }).token,
+    //             user: { id: response.id, name: response.name, email: response.email, roles: response.roles },
+    //         });
+    //         router.push('/');
+    //     })
+    //     .catch((e) => {
+    //         alert.set('error',e)
+    //         formState.password = ''
+    //         console.error(e);
+    //     });
+    // }
+    const { signIn } = useSession()
+    const mySignInHandler = async () => {
+        const { error, url } = await signIn('credentials', { username: formState.email, password: formState.password, redirect: false })
+        if (error) {
+                alert.set('error','Wrong credentials !')
+                formState.password = ''
+        } else {
+            //authState.set()
+            navigateTo("/")
+        }
     }
+    const azure = async () =>{
+        const { error, url } = await signIn('azure-ad')
+        if (error) {
+                alert.set('error','Wrong Azure credentials ?')
+        } else {
+            //authState.set()
+            navigateTo("/")
+        }
+    }
+
 </script>
 
 <template>
     <a-card title="Login">
-        <Alert></Alert>
+        <template #extra>
+            <a-button type="primary" @click="azure">Login with Office 365
+                <template #icon><mdi-account-sync /></template>
+            </a-button>
+        </template>
         <a-form
             :model="formState"
             name="basic"
             :label-col="{ span: 8 }"
             :wrapper-col="{ span: 16 }"
             autocomplete="off"
-            @finish="attemptLogin"
+            @finish="mySignInHandler"
         >
             <a-form-item
             label="Email"

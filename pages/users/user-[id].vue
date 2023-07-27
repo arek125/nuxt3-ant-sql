@@ -1,16 +1,11 @@
 <script setup lang="ts">
-const authState = useAuthState();
-const router = useRouter();
 const route = useRoute()
-if (!authState.value.loggedIn) {
-  router.push('/login');
-}
 
-const userData = ref(null)
+const userData:any = ref(null)
 
 onMounted(async ()=>{
-  const userData_:any = await $fetch('/api/users/'+route.params.id, { headers: authState.getAuthHeader() })
-  userData_.roles = userData_.roles.map(x=>x.id)
+  const userData_:any = await $fetch('/api/users/'+route.params.id)
+  userData_.roles = userData_.roles.map((x:any)=>x.id)
   userData.value = userData_
 })
 

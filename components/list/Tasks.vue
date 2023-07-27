@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import type { TableProps } from 'ant-design-vue'
-const authState = useAuthState()
-
+import * as qs from 'qs'
+//const authState = useAuthState()
+const { data: authState}: { data: any } = useSession()
         const columns = ref([
           {
             title: 'Title',
@@ -38,6 +39,12 @@ const authState = useAuthState()
           },
         ])
 
+const activeTab = ref('myTasks')
+const tabFilter = computed(() => {
+  if(activeTab.value == 'myTasks')
+  return{'$users.id$': authState.value.user?.id}
+  else return {}
+})
 const customRow = (task) => {
  return {
   onClick: (event) => {navigateTo('/docs/doc-'+task.flowInstance.documentId+"?taskId="+task.id)}
@@ -52,14 +59,11 @@ function statusColor(status){
 }
 
 //const adminMode = ref(authState.value.user.roles.includes('Admin'))
-const currentPage = ref(1)
-const pageSize = ref(3)
-const docCount = ref(1)
-const pagination = computed(() => ({
-    total: docCount.value,
-    current: currentPage.value,
-    pageSize: pageSize.value,
-}));
+let pagination = reactive({
+    total: 1,
+    current: 1,
+    pageSize: 10,
+})
 
 // const { data: docs }: { data: any } = await useAsyncData( 'docs',
 //   async () => $fetch('/api/docs?page='+currentPage.value+"&pageSize="+pageSize.value, { headers: authState.getAuthHeader() }),
@@ -70,43 +74,60 @@ const loading = ref(true)
 
 async function getTasks(page,size,sortField='id',sortOrder='ASC',filters?){
     loading.value = true
-    const filters_ = {}
-    for (const key in filters){
-        // let col = columns.value.find(x=>x.key == key || x.dataIndex == key)
-        // let filterType = col.joined?'filterExt_':'filter_'
-        if(filters[key])filters_['filter_'+key] = filters[key]
+    let filters__ = {
+        ...{status: {
+        $ne: 'Pending'
+      }},
+      ...tabFilter.value
     }
-    if(filters_) docCount.value = await countTasks(filters_)
-    tasks.value = await $fetch('/api/tasks', { headers: authState.getAuthHeader(), params: { 
+    for (let key in filters)
+      if(filters[key]){
+        let val = filters[key]
+        if(key.includes('.'))key = '$'+key+'$'
+        if(!filters__[key])filters__[key]={}
+        filters__[key].$iLike = '%'+val+'%'
+      }
+    
+    const filterString = qs.stringify(filters__, { delimiter: ';' });
+    console.log(filterString)
+    pagination.total = await countTasks(filterString)
+    tasks.value = await $fetch('/api/tasks', { params: { 
             page: page-1, 
             pageSize: size,
             sortField,
             sortOrder,
-            ...filters_
+            filters: filterString
+            //...filters_
         } 
     })
     loading.value = false
     return tasks.value
 }
-async function countTasks(filters_= {}){
-    docCount.value = await $fetch('/api/tasks?count=1', { headers: authState.getAuthHeader(),params: { 
-            ...filters_
-        }})
-    return docCount.value
+function tabChange(){
+  pagination.current = 1
+  if(activeTab.value == "allTasks")pagination.pageSize = 50
+  else pagination.pageSize = 10
+  getTasks(pagination.current,pagination.pageSize)
 }
 
+async function countTasks(filterString){
+        pagination.total =  await $fetch('/api/tasks?count=1', { params: { 
+          filters: filterString
+        }})
+    return pagination.total
+}
 const handleTableChange: TableProps['onChange'] = (
     pag: { pageSize: number; current: number },
     filters: any,
     sorter: any,
 ) => {
-    console.log(filters)
+    pagination.current = pag.current
+    pagination.pageSize = pag.pageSize
     getTasks(pag.current,pag.pageSize,sorter.field,sorter.order,filters)
 };
 
 onMounted(async ()=>{
-    await countTasks()
-    getTasks(currentPage.value,pageSize.value)
+    getTasks(pagination.current,pagination.pageSize)
 })
 
 </script>
@@ -120,6 +141,24 @@ onMounted(async ()=>{
                 <template #icon><mdi-file-document-plus-outline /></template>
             </a-button>
         </template> -->
+        <a-tabs v-model:activeKey="activeTab" @change="tabChange">
+          <a-tab-pane key="myTasks">
+            <template #tab>
+              <span>
+                <mdi-alert />
+                My active tasks
+              </span>
+            </template>
+          </a-tab-pane>
+          <a-tab-pane key="allTasks">
+            <template #tab>
+              <span>
+                <mdi-view-list />
+                All tasks
+              </span>
+            </template>
+          </a-tab-pane>
+        </a-tabs>
         <a-table :dataSource="tasks" 
         :columns="columns" 
         :customRow="customRow"

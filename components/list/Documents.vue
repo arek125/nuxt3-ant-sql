@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { TableProps } from 'ant-design-vue'
-const authState = useAuthState()
+import * as qs from 'qs'
+//const authState = useAuthState()
 
         const columns = ref([
           {
@@ -31,14 +32,19 @@ function statusColor(status){
 }
 
 //const adminMode = ref(authState.value.user.roles.includes('Admin'))
-const currentPage = ref(1)
-const pageSize = ref(3)
-const docCount = ref(1)
-const pagination = computed(() => ({
-    total: docCount.value,
-    current: currentPage.value,
-    pageSize: pageSize.value,
-}));
+// const currentPage = ref(1)
+// const pageSize = ref(3)
+// const docCount = ref(1)
+// const pagination = computed(() => ({
+//     total: docCount.value,
+//     current: currentPage.value,
+//     pageSize: pageSize.value,
+// }));
+let pagination = reactive({
+    total: 1,
+    current: 1,
+    pageSize: 10,
+})
 
 // const { data: docs }: { data: any } = await useAsyncData( 'docs',
 //   async () => $fetch('/api/docs?page='+currentPage.value+"&pageSize="+pageSize.value, { headers: authState.getAuthHeader() }),
@@ -49,27 +55,34 @@ const loading = ref(true)
 
 async function getDocs(page,size,sortField='id',sortOrder='ASC',filters?){
     loading.value = true
-    const filters_ = {}
-    for (const key in filters){
-        if(filters[key])filters_['filter_'+key] = filters[key]
-    }
-    if(filters_) docCount.value = await countDocs(filters_)
-    docs.value = await $fetch('/api/docs', { headers: authState.getAuthHeader(), params: { 
+    let filters__ = {}
+    for (let key in filters)
+      if(filters[key]){
+        let val = filters[key]
+        if(key.includes('.'))key = '$'+key+'$'
+        if(!filters__[key])filters__[key]={}
+        filters__[key].$iLike = '%'+val+'%'
+      }
+    
+    const filterString = qs.stringify(filters__, { delimiter: ';' });
+    console.log(filterString)
+    pagination.total = await countDocs(filterString)
+    docs.value = await $fetch('/api/docs', { params: { 
             page: page-1, 
             pageSize: size,
             sortField,
             sortOrder,
-            ...filters_
+            filters: filterString
         } 
     })
     loading.value = false
     return docs.value
 }
-async function countDocs(filters_= {}){
-    docCount.value = await $fetch('/api/docs?count=1', { headers: authState.getAuthHeader(),params: { 
-            ...filters_
+async function countDocs(filterString){
+        pagination.total = await $fetch('/api/docs?count=1', {params: { 
+          filters: filterString
         }})
-    return docCount.value
+    return pagination.total
 }
 
 const handleTableChange: TableProps['onChange'] = (
@@ -77,13 +90,15 @@ const handleTableChange: TableProps['onChange'] = (
     filters: any,
     sorter: any,
 ) => {
-    console.log(filters)
+    pagination.current = pag.current
+    pagination.pageSize = pag.pageSize
     getDocs(pag.current,pag.pageSize,sorter.field,sorter.order,filters)
 };
 
 onMounted(async ()=>{
-    await countDocs()
-    getDocs(currentPage.value,pageSize.value)
+    //await countDocs()
+    //getDocs(currentPage.value,pageSize.value)
+    getDocs(pagination.current,pagination.pageSize)
 })
 // const state = reactive({
 //     searchText: '',

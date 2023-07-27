@@ -2,15 +2,17 @@
 import User from '../../models/user'
 import Role from '../../models/role';
 import { sendError } from 'h3'
-import argon2 from 'argon2'
+//import argon2 from 'argon2'
 
 import { Op } from "sequelize";
+import bcrypt from "bcrypt"
+const saltRounds = 10;
 
-
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event:any) => {
     if (!event.context.auth) {
         return sendError(event, createError({statusCode: 401, statusMessage: 'Unauthenticated'}));
     }
+    console.log(event.context.auth)
     const adminMode = event.context.auth.roles.includes('Admin')
     if(isMethod(event, 'GET')) {
         console.log(event.context.params.id)
@@ -20,7 +22,7 @@ export default defineEventHandler(async (event) => {
         return user
     }
     else if (isMethod(event, 'POST')) {
-        const input = await useBody(event);
+        const input = await readBody(event);
         let allow = false
         if (adminMode) {
             allow = true
@@ -34,11 +36,12 @@ export default defineEventHandler(async (event) => {
             if(!adminMode){
                 //const user = await User.findOne({email: input.email});
                 const user:any = await User.findOne({where: {email: input.email}})
-                if (!user || !await argon2.verify(user.password, input.currentPassoword)) {
+                if (!user ||await bcrypt.compare(input.currentPassoword, user.password)  /*!await argon2.verify(user.password, input.currentPassoword)*/) {
                     return sendError(event, createError({statusCode: 401, statusMessage: 'Wrong password !'}));
                 }
             }
-            input.password = await argon2.hash(input.newPassword)
+            //input.password = await argon2.hash(input.newPassword)
+            input.password = await bcrypt.hash(input.newPassword, saltRounds)
         }
         delete input.currentPassoword
         delete input.newPassword
@@ -51,7 +54,7 @@ export default defineEventHandler(async (event) => {
             const user:any = await User.findOne({where: {id: input.id}})
             await user.setRoles(selectedRoles)
             return updatedUser;
-        }catch(err){
+        }catch(err:any){
             return sendError(event, createError({statusCode: 400, statusMessage: err}));
         }
     }

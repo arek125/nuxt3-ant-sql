@@ -1,20 +1,21 @@
 <script lang="ts" setup>
-import type { SelectProps } from 'ant-design-vue';
-import type { FormInstance } from 'ant-design-vue';
+import type { FormInstance,UploadChangeParam } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
-
-const authState = useAuthState()
-//const { setAlert } = useAlert()
+import { useDocStore } from '@/stores/doc'
+const store = useDocStore()
 const alert = useAlert();
 const props = defineProps({
   docData: {
     type: [Object],
-    default: {id: null, title: '', status: 'New', flowId: null, send: true }
+    default: {id: null, title: '', status: 'New', flowId: null, send: true, description: '',documentFiles: [] }
   }
 })
 
 const doc = reactive(props.docData)
 
+//const fileList = ref(props.docData.documentFiles.map(x=>{return {status: 'success', uid: x.id, name: x.name, url: '/api/docsfile/'+x.path}}));
+//const filesToRemove:any = ref([])
+store.setFileLists(props.docData.documentFiles)
 const formRef = ref<FormInstance>();
 
 const rules: Record<string, Rule[]> = {
@@ -32,37 +33,78 @@ const rules: Record<string, Rule[]> = {
 //   }
 // );
 
+const emit = defineEmits(['startFlow','fileChange','docSave'])
 
-function saveDocument(){
-    if(!doc.id){//newuser
-        $fetch('/api/docs', {
-            method: 'POST',
-            headers: authState.getAuthHeader(),
-            body: { ...doc },
-        })
-        .then((response: any) => {
-            navigateTo('/docs/doc-'+response.id)
-        })
-        .catch((e) => {
-            alert.set('error',e)
-            console.error(e);
-        });
-    }else{
-        $fetch('/api/docs/'+doc.id, {
-            method: 'POST',
-            headers: authState.getAuthHeader(),
-            body: { ...doc },
-        })
-        .then((response: any) => {
+
+async function saveDocument(startFlow){
+    try{
+        //const files = store.fileList.filter(x=>x.status == 'done').map(x=>x.response)
+
+        if(!doc.id){//newuser
+            let response:any = await $fetch('/api/docs', {
+                method: 'POST',
+                //headers: authState.getAuthHeader(),
+                body: { ...doc, files: store.newFiles },
+            })
+            emit('docSave',response.id)
+            if(startFlow === true)emit('startFlow',response.id)
+            else navigateTo('/docs/doc-'+response.id)
+        }else{
+            let response:any = await $fetch('/api/docs/'+doc.id, {
+                method: 'POST',
+                //headers: authState.getAuthHeader(),
+                body: { ...doc, newFiles: store.newFiles, removeFiles: store.filesToRemove},
+            })
+            store.filesToRemove = []
+            emit('docSave',response.id)
+            if(startFlow === true)emit('startFlow',response.id)
             alert.set('success','Doc updated')
+        }
+    }catch(e){
+        alert.set('error',e)
+        console.error(e);
+    }
+
+}
+
+const handleChange = (info: UploadChangeParam) => {
+      const status = info.file.status;
+      if (status !== 'uploading') {
+        console.log(info.file, info.fileList);
+      }
+      if (status === 'done') {
+        console.log(`${info.file.name} file uploaded successfully.`);
+        //emit('fileChange',fileList.value.map(x=>x.response))
+      } else if (status === 'error') {
+        console.log(`${info.file.name} file upload failed.`);
+      }
+};
+
+// const handleDrop = (e: DragEvent) => {
+//     console.log(e);
+// }
+// const handleRemoveFile = (file) => {
+//     console.log(file)
+//     if(file.status == 'success')filesToRemove.value.push(file.uid)
+//     return true
+// }
+//const authHeader = ref(authState.getAuthHeader())
+
+async function removeDoc(){
+    try {
+        await $fetch('/api/docs/'+doc.id, {
+            method: 'DELETE',
+            //headers: authState.getAuthHeader(),
         })
-        .catch((e) => {
-            alert.set('error',e)
-            console.error(e);
-        });
+        alert.set('success','Doc removed')
+        navigateTo('/')
+    } catch (e) {
+        alert.set('error',e)
+        console.error(e)
     }
 }
 
+defineExpose({saveDocument, doc})
 
 </script>
 
@@ -81,17 +123,38 @@ function saveDocument(){
                     <a-input v-model:value="doc.title" />
                 </a-form-item>
             </a-col>
-            <!-- <a-col :span="8">
-                <a-form-item label="Flow" name="flowId" >
-                    <a-select v-model:value="doc.flowId" :options="flows"></a-select>
+            <a-col :span="8">
+                <a-form-item label="Description">
+                    <a-textarea v-model:value="doc.description" />
                 </a-form-item>
-            </a-col> -->
+            </a-col>
         </a-row>
-        <a-row justify="end">
-            <!-- <a-col :span="4" class="gutter-row" v-if="!doc.id || !doc.send">
-                <a-switch v-model:checked="doc.send" checked-children="Send" un-checked-children="Save only" />
-            </a-col> -->
-            <a-col :span="4" class="gutter-row">
+        <a-row :gutter="24">
+            <a-col :span="8">
+                <a-upload-dragger
+                    v-model:fileList="store.fileList"
+                    name="file"
+                    :multiple="true"
+                    action="/api/upload"
+                    @remove="store.handleRemoveFile"
+                    @change="handleChange"
+                >
+                    <p class="ant-upload-drag-icon">
+                        <mdi-file-upload />
+                    </p>
+                    <p class="ant-upload-text">Click or drag file to this area to upload</p>
+                    <p class="ant-upload-hint">
+                    Support for a single or bulk upload. Strictly prohibit from uploading company data or other
+                    band files
+                    </p>
+                </a-upload-dragger>
+            </a-col>
+        </a-row>
+        <a-row justify="end" :gutter="16">
+            <a-col class="gutter-row" v-if="doc.id">
+                <a-button type="primary" danger @click="removeDoc">Remove</a-button>
+            </a-col>
+            <a-col class="gutter-row">
                 <a-button type="primary" html-type="submit">Save</a-button>
             </a-col>
         </a-row>
